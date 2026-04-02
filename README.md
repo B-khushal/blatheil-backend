@@ -22,6 +22,19 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 NODE_ENV=development
+SHIPROCKET_EMAIL=your_shiprocket_login_email
+SHIPROCKET_PASSWORD=your_shiprocket_login_password
+
+# Optional hardening/config
+SHIPROCKET_WEBHOOK_SECRET=your_webhook_secret_token
+SHIPROCKET_PICKUP_LOCATION=Primary
+SHIPROCKET_DEFAULT_CITY=Mumbai
+SHIPROCKET_DEFAULT_STATE=Maharashtra
+SHIPROCKET_DEFAULT_PINCODE=400001
+
+# Razorpay (test/live switch through keys)
+RAZORPAY_KEY_ID=rzp_test_xxxxxxxx
+RAZORPAY_SECRET=your_razorpay_secret
 ```
 
 ### 3. Start Server
@@ -79,6 +92,15 @@ curl http://localhost:5001/api/health
 - `GET /api/orders/my` - Get user's orders (protected)
 - `GET /api/orders` - Get all orders (admin only)
 - `PUT /api/orders/:id/status` - Update order status (admin only)
+
+### Shiprocket
+- `POST /api/shiprocket/create-order` - Create or retry shipment for an order (admin only)
+- `POST /api/shiprocket/webhook` - Receive shipping status updates from Shiprocket
+- `GET /api/shiprocket/track/:awb` - Fetch latest tracking details for AWB
+
+### Payment
+- `POST /api/payment/create-order` - Create Razorpay payment order (protected)
+- `POST /api/payment/verify` - Verify Razorpay signature and create DB order (protected)
 
 ### Upload
 - `POST /api/upload` - Upload image to Cloudinary (admin only)
@@ -197,6 +219,11 @@ Error:
 | CLOUDINARY_API_KEY | Yes | Cloudinary API key |
 | CLOUDINARY_API_SECRET | Yes | Cloudinary API secret |
 | NODE_ENV | No | Environment (development/production) |
+| SHIPROCKET_EMAIL | Yes (for shipping) | Shiprocket account login email |
+| SHIPROCKET_PASSWORD | Yes (for shipping) | Shiprocket account login password |
+| SHIPROCKET_WEBHOOK_SECRET | No | Optional token to validate incoming webhook requests |
+| RAZORPAY_KEY_ID | Yes (for Razorpay) | Razorpay key id (test or live) |
+| RAZORPAY_SECRET | Yes (for Razorpay) | Razorpay secret used for payment signature verification |
 
 ## Security Notes
 

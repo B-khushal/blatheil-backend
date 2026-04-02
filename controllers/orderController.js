@@ -1,13 +1,9 @@
 const asyncHandler = require("express-async-handler");
-const mongoose = require("mongoose");
 const Order = require("../models/Order");
-const Product = require("../models/Product");
-const Cart = require("../models/Cart");
-const { generateWhatsAppMessage, generateWhatsAppLink } = require("../utils/whatsapp");
-const { CONTACT_WHATSAPP_NUMBER } = require("../config/contact");
+const { createOrderWithFulfillment } = require("../services/orderService");
 
 const createOrder = asyncHandler(async (req, res) => {
-  const { items, shippingAddress, phone } = req.body;
+  const { items, shippingAddress, phone, fullName, city, state, pincode, paymentMethod } = req.body;
 
   if (!Array.isArray(items) || items.length === 0 || !shippingAddress || !phone) {
     return res.status(400).json({
@@ -16,66 +12,22 @@ const createOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  let totalPrice = 0;
-  const products = [];
-
-  for (const item of items) {
-    if (!mongoose.Types.ObjectId.isValid(item.productId) || !item.quantity || !item.size) {
-      return res.status(400).json({
-        success: false,
-        message: "Each item must include valid productId, quantity and size",
-      });
-    }
-
-    const product = await Product.findById(item.productId);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: `Product not found: ${item.productId}`,
-      });
-    }
-
-    if (item.quantity > product.stock) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient stock for ${product.name}`,
-      });
-    }
-
-    products.push(product);
-    totalPrice += product.price * item.quantity;
-  }
-
-  for (const item of items) {
-    const product = await Product.findById(item.productId);
-    product.stock -= item.quantity;
-    await product.save();
-  }
-
-  const order = await Order.create({
+  const created = await createOrderWithFulfillment({
     userId: req.user._id,
     items,
-    totalPrice,
     shippingAddress,
     phone,
+    fullName,
+    city,
+    state,
+    pincode,
+    paymentMethod: paymentMethod === "Razorpay" ? "Razorpay" : "COD",
+    paymentStatus: paymentMethod === "Razorpay" ? "Paid" : "Pending",
   });
-
-  await order.populate("items.productId", "name price");
-
-  // Generate WhatsApp message and link
-  const waMessage = generateWhatsAppMessage(order, products);
-  const waLink = generateWhatsAppLink(CONTACT_WHATSAPP_NUMBER, waMessage);
-
-  // Clear user's cart after order
-  await Cart.updateOne({ userId: req.user._id }, { items: [] });
 
   return res.status(201).json({
     success: true,
-    data: {
-      order,
-      whatsappLink: waLink,
-      whatsappMessage: waMessage,
-    },
+    data: created,
   });
 });
 

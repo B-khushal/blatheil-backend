@@ -10,7 +10,12 @@ const { requireFields } = require("../middleware/validateRequest");
 
 const router = express.Router();
 
-router.post("/", protect, requireFields(["items", "shippingAddress", "phone"]), createOrder);
+router.post(
+  "/",
+  protect,
+  requireFields(["items", "shippingAddress", "phone", "fullName", "city", "state", "pincode"]),
+  createOrder
+);
 router.get("/my", protect, getMyOrders);
 router.get("/", protect, authorizeRoles("admin"), getAllOrders);
 router.put("/:id/status", protect, authorizeRoles("admin"), updateOrderStatus);

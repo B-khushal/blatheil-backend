@@ -15,6 +15,10 @@ const cartRoutes = require("./routes/cartRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const contactRoutes = require("./routes/contactRoutes");
+const shiprocketRoutes = require("./routes/shiprocketRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const adminWebsiteRoutes = require("./routes/adminWebsiteRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 const bootstrapAdmin = require("./utils/bootstrapAdmin");
 
 const app = express();
@@ -51,6 +55,10 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/shiprocket", shiprocketRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/admin/website-content", adminWebsiteRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

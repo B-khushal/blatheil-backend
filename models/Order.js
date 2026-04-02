@@ -42,15 +42,97 @@ const orderSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    totalAmount: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
     shippingAddress: {
       type: String,
       required: true,
       trim: true,
     },
+    fullName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    pincode: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     phone: {
       type: String,
       required: true,
       trim: true,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["COD", "Razorpay"],
+      default: "COD",
+      index: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid", "Failed"],
+      default: "Pending",
+      index: true,
+    },
+    razorpay_order_id: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
+    razorpay_payment_id: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    shiprocket_order_id: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
+    shipment_id: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
+    awb_code: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
+    courier_name: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    shipping_status: {
+      type: String,
+      trim: true,
+      default: "Pending",
+      index: true,
+    },
+    tracking_url: {
+      type: String,
+      trim: true,
+      default: null,
     },
     status: {
       type: String,
@@ -63,5 +145,7 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+orderSchema.index({ razorpay_payment_id: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("Order", orderSchema);

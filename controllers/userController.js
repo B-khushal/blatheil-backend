@@ -16,5 +16,28 @@ const getProfile = asyncHandler(async (req, res) => {
     data: user,
   });
 });
+const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
 
-module.exports = { getProfile };
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      },
+    });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
+
+module.exports = { getProfile, updateProfile };
