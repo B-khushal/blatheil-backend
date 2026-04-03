@@ -12,6 +12,13 @@ const createOrder = asyncHandler(async (req, res) => {
     });
   }
 
+  if (paymentMethod === "COD") {
+    return res.status(400).json({
+      success: false,
+      message: "Cash on Delivery is no longer available.",
+    });
+  }
+
   const created = await createOrderWithFulfillment({
     userId: req.user._id,
     items,
@@ -21,8 +28,8 @@ const createOrder = asyncHandler(async (req, res) => {
     city,
     state,
     pincode,
-    paymentMethod: paymentMethod === "Razorpay" ? "Razorpay" : "COD",
-    paymentStatus: paymentMethod === "Razorpay" ? "Paid" : "Pending",
+    paymentMethod: "Razorpay",
+    paymentStatus: "Paid",
   });
 
   return res.status(201).json({

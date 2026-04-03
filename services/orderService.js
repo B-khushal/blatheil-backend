@@ -57,7 +57,7 @@ const createOrderWithFulfillment = async ({
   items,
   shippingAddress,
   phone,
-  paymentMethod = "COD",
+  paymentMethod = "Razorpay",
   paymentStatus = "Pending",
   razorpay_order_id = null,
   razorpay_payment_id = null,

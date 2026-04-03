@@ -184,7 +184,7 @@ const createShiprocketOrder = async (orderData) => {
       tax: "",
       hsn: "",
     })),
-    payment_method: "COD",
+    payment_method: "Prepaid",
     shipping_charges: 0,
     giftwrap_charges: 0,
     transaction_charges: 0,

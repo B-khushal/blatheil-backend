@@ -19,6 +19,7 @@ const shiprocketRoutes = require("./routes/shiprocketRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const adminWebsiteRoutes = require("./routes/adminWebsiteRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const offerRoutes = require("./routes/offerRoutes");
 const bootstrapAdmin = require("./utils/bootstrapAdmin");
 
 const app = express();
@@ -59,6 +60,7 @@ app.use("/api/shiprocket", shiprocketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin/website-content", adminWebsiteRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/offers", offerRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
