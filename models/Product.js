@@ -42,6 +42,30 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+      description: 'Average rating calculated from all visible reviews'
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
+      min: 0,
+      description: 'Total count of visible approved reviews'
+    },
+    ratingDistribution: {
+      type: {
+        5: { type: Number, default: 0 },
+        4: { type: Number, default: 0 },
+        3: { type: Number, default: 0 },
+        2: { type: Number, default: 0 },
+        1: { type: Number, default: 0 }
+      },
+      default: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+      description: 'Count of reviews for each rating level'
+    },
     isFeatured: {
       type: Boolean,
       default: false,

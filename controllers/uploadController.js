@@ -9,6 +9,13 @@ const uploadImage = asyncHandler(async (req, res) => {
     });
   }
 
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    return res.status(500).json({
+      success: false,
+      message: "Image upload is not configured on the server (Cloudinary env vars missing)",
+    });
+  }
+
   try {
     const uploadResult = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -67,6 +74,13 @@ const uploadMultipleImages = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "At least one image file is required",
+    });
+  }
+
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    return res.status(500).json({
+      success: false,
+      message: "Image upload is not configured on the server (Cloudinary env vars missing)",
     });
   }
 
