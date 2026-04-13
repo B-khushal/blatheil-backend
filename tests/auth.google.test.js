@@ -24,13 +24,12 @@ test("POST /api/auth/google rejects when credential is missing", async () => {
   assert.match(response.body.message, /Missing required fields: credential/i);
 });
 
-test("POST /api/auth/google rejects on CSRF token mismatch", async () => {
+test("POST /api/auth/google rejects on invalid CSRF token", async () => {
   const app = buildApp();
 
   const response = await request(app)
     .post("/api/auth/google")
-    .set("Cookie", ["csrf_token=cookie-token"])
-    .set("X-CSRF-Token", "header-token")
+    .set("X-CSRF-Token", "invalid-token")
     .send({ credential: "fake-google-id-token" });
 
   assert.equal(response.status, 403);

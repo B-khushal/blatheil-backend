@@ -9,6 +9,43 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const isGoogleAuthConfigured = () => Boolean(process.env.GOOGLE_CLIENT_ID);
 
 const isProduction = process.env.NODE_ENV === "production";
+const csrfTtlMs = 60 * 60 * 1000;
+
+const createCsrfToken = () => {
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const issuedAt = Date.now().toString();
+  const payload = `${nonce}.${issuedAt}`;
+  const signature = crypto
+    .createHmac("sha256", process.env.JWT_SECRET || "csrf-fallback-secret")
+    .update(payload)
+    .digest("hex");
+
+  return `${payload}.${signature}`;
+};
+
+const isValidCsrfToken = (token) => {
+  if (!token || typeof token !== "string") {
+    return false;
+  }
+
+  const [nonce, issuedAt, signature] = token.split(".");
+  if (!nonce || !issuedAt || !signature) {
+    return false;
+  }
+
+  const issuedAtNumber = Number(issuedAt);
+  if (!Number.isFinite(issuedAtNumber) || Date.now() - issuedAtNumber > csrfTtlMs) {
+    return false;
+  }
+
+  const payload = `${nonce}.${issuedAt}`;
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.JWT_SECRET || "csrf-fallback-secret")
+    .update(payload)
+    .digest("hex");
+
+  return signature === expectedSignature;
+};
 
 const cookieOptions = {
   httpOnly: true,
@@ -115,12 +152,12 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const getCsrfToken = asyncHandler(async (req, res) => {
-  const csrfToken = crypto.randomBytes(32).toString("hex");
+  const csrfToken = createCsrfToken();
   res.cookie("csrf_token", csrfToken, {
     httpOnly: false,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 60 * 60 * 1000,
+    maxAge: csrfTtlMs,
   });
 
   res.json({
@@ -132,7 +169,6 @@ const getCsrfToken = asyncHandler(async (req, res) => {
 const googleAuth = asyncHandler(async (req, res) => {
   const { credential } = req.body;
   const csrfHeader = req.headers["x-csrf-token"];
-  const csrfCookie = req.cookies?.csrf_token;
 
   if (!credential) {
     return res.status(400).json({
@@ -141,7 +177,7 @@ const googleAuth = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
+  if (!isValidCsrfToken(csrfHeader)) {
     return res.status(403).json({
       success: false,
       message: "CSRF validation failed",
