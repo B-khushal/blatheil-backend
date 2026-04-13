@@ -4,6 +4,15 @@ const User = require("../models/User");
 const { createOrderWithFulfillment } = require("../services/orderService");
 const { sendOrderCancelledEmail, sendOrderDeliveredEmail } = require("../services/emailService");
 
+const getPrimaryFrontendUrl = () => {
+  const configuredOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return configuredOrigins[0] || "https://blatheil.com";
+};
+
 const createOrder = asyncHandler(async (req, res) => {
   const { items, shippingAddress, phone, fullName, city, state, pincode, paymentMethod } = req.body;
 
@@ -148,7 +157,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       customerName: user.name,
       order,
       deliveredAt: order.deliveredAt ? order.deliveredAt.toLocaleString("en-IN") : undefined,
-      reviewUrl: `${process.env.FRONTEND_URL || "https://blatheil.com"}/my-orders`,
+      reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
       couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
     });
   }

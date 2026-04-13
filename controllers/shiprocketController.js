@@ -7,6 +7,16 @@ const {
   generatePickup,
   trackShipment,
 } = require("../services/shiprocketService");
+const { sendOrderDeliveredEmail } = require("../services/emailService");
+
+const getPrimaryFrontendUrl = () => {
+  const configuredOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return configuredOrigins[0] || "https://blatheil.com";
+};
 
 const toShippingStatus = (value) => {
   const normalized = String(value || "").trim().toUpperCase();
@@ -163,6 +173,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
     });
   }
 
+  const previousStatus = order.status;
   const shippingStatus = toShippingStatus(incomingStatus);
   order.shipping_status = shippingStatus;
 
@@ -176,6 +187,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
 
   if (shippingStatus === "Delivered") {
     order.status = "delivered";
+    order.deliveredAt = order.deliveredAt || new Date();
   } else if (
     shippingStatus === "Shipped" ||
     shippingStatus === "In Transit" ||
@@ -187,6 +199,20 @@ const handleWebhook = asyncHandler(async (req, res) => {
   }
 
   await order.save();
+
+  if (order.status === "delivered" && previousStatus !== "delivered") {
+    const user = await User.findById(order.userId).select("name email");
+    if (user?.email) {
+      await sendOrderDeliveredEmail({
+        to: user.email,
+        customerName: user.name,
+        order,
+        deliveredAt: order.deliveredAt ? order.deliveredAt.toLocaleString("en-IN") : undefined,
+        reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
+        couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
+      });
+    }
+  }
 
   return res.status(200).json({
     success: true,
@@ -202,15 +228,31 @@ const trackByAwb = asyncHandler(async (req, res) => {
   const order = await Order.findOne({ awb_code: String(awb) });
 
   if (order) {
+    const previousStatus = order.status;
     order.shipping_status = toShippingStatus(tracking.current_status);
     order.courier_name = tracking.courier_name || order.courier_name;
     order.tracking_url = tracking.tracking_url || order.tracking_url;
 
     if (order.shipping_status === "Delivered") {
       order.status = "delivered";
+      order.deliveredAt = order.deliveredAt || new Date();
     }
 
     await order.save();
+
+    if (order.status === "delivered" && previousStatus !== "delivered") {
+      const user = await User.findById(order.userId).select("name email");
+      if (user?.email) {
+        await sendOrderDeliveredEmail({
+          to: user.email,
+          customerName: user.name,
+          order,
+          deliveredAt: order.deliveredAt ? order.deliveredAt.toLocaleString("en-IN") : undefined,
+          reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
+          couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
+        });
+      }
+    }
   }
 
   return res.json({

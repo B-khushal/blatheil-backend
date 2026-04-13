@@ -8,6 +8,14 @@ const { CONTACT_WHATSAPP_NUMBER } = require("../config/contact");
 const { syncShipmentForOrder } = require("../controllers/shiprocketController");
 const { sendOrderConfirmationEmail } = require("./emailService");
 
+const runInBackground = (task, label) => {
+  Promise.resolve()
+    .then(task)
+    .catch((error) => {
+      console.error(`[Async:${label}] ${error.message}`);
+    });
+};
+
 const validateAndPriceItems = async (items) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Order items are required");
@@ -96,17 +104,10 @@ const createOrderWithFulfillment = async ({
     Boolean(process.env.SHIPROCKET_EMAIL) && Boolean(process.env.SHIPROCKET_PASSWORD);
 
   if (isShiprocketConfigured) {
-    try {
-      latestOrder = await syncShipmentForOrder(order);
-      console.log(`[Shiprocket] Shipment synced for order ${latestOrder._id}`);
-    } catch (shiprocketError) {
-      console.error(
-        `[Shiprocket] Failed to sync shipment for order ${order._id}: ${shiprocketError.message}`
-      );
-      order.shipping_status = "Pending";
-      await order.save();
-      latestOrder = order;
-    }
+    runInBackground(async () => {
+      const syncedOrder = await syncShipmentForOrder(order);
+      console.log(`[Shiprocket] Shipment synced for order ${syncedOrder._id}`);
+    }, `shiprocket-sync:${order._id}`);
   }
 
   const user = await User.findById(userId).select("name email");
@@ -114,12 +115,14 @@ const createOrderWithFulfillment = async ({
   const waLink = generateWhatsAppLink(CONTACT_WHATSAPP_NUMBER, waMessage);
 
   if (user?.email) {
-    await sendOrderConfirmationEmail({
-      to: user.email,
-      customerName: user.name,
-      order: latestOrder,
-      estimatedDelivery: process.env.DEFAULT_ESTIMATED_DELIVERY || "3-7 business days",
-    });
+    runInBackground(async () => {
+      await sendOrderConfirmationEmail({
+        to: user.email,
+        customerName: user.name,
+        order: latestOrder,
+        estimatedDelivery: process.env.DEFAULT_ESTIMATED_DELIVERY || "3-7 business days",
+      });
+    }, `order-confirmation-email:${order._id}`);
   }
 
   if (clearUserCart) {
