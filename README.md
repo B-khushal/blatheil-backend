@@ -35,6 +35,23 @@ SHIPROCKET_DEFAULT_PINCODE=400001
 # Razorpay (test/live switch through keys)
 RAZORPAY_KEY_ID=rzp_test_xxxxxxxx
 RAZORPAY_SECRET=your_razorpay_secret
+
+# Frontend and auth
+FRONTEND_URL=http://localhost:8080,http://localhost:5173
+JWT_EXPIRES_IN=7d
+
+# Gmail SMTP (Google app password)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=blatheil134@gmail.com
+SMTP_PASS=your_google_app_password
+SMTP_FROM="Blatheil <blatheil134@gmail.com>"
+DEFAULT_ESTIMATED_DELIVERY=3-7 business days
+DEFAULT_NEXT_PURCHASE_COUPON=BLATHEIL10
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
 ```
 
 ### 3. Start Server
@@ -68,6 +85,9 @@ curl http://localhost:5001/api/health
 ### Authentication
 - `POST /api/auth/signup` - Register new user
 - `POST /api/auth/login` - Login user
+- `GET /api/auth/csrf-token` - Issue CSRF token for secure auth actions
+- `POST /api/auth/google` - Sign in/up with Google credential
+- `POST /api/auth/logout` - Clear auth cookie session
 - `POST /api/auth/change-password` - Change password (protected)
 
 ### Users
@@ -91,6 +111,7 @@ curl http://localhost:5001/api/health
 - `POST /api/orders` - Create order (protected)
 - `GET /api/orders/my` - Get user's orders (protected)
 - `GET /api/orders` - Get all orders (admin only)
+- `PUT /api/orders/:id/cancel` - Cancel order (user owner or admin)
 - `PUT /api/orders/:id/status` - Update order status (admin only)
 
 ### Shiprocket
@@ -108,6 +129,7 @@ curl http://localhost:5001/api/health
 ## Features
 
 ✅ Real JWT authentication with 7-day expiration
+✅ Google Sign In / Sign Up with secure credential verification
 ✅ Role-based access control (admin, user, staff)
 ✅ MongoDB Atlas database storage
 ✅ Cloudinary image hosting
@@ -115,9 +137,11 @@ curl http://localhost:5001/api/health
 ✅ Secure password hashing with bcrypt
 ✅ Real-time cart & order management
 ✅ WhatsApp order integration
-✅ Email-ready order notifications
+✅ Branded transactional emails for order confirmation/cancellation/delivery
 ✅ Request validation & sanitization
 ✅ Rate limiting (200 requests per 15 min)
+✅ CSRF token check for Google auth exchange
+✅ Secure auth cookies for session persistence
 ✅ CORS enabled for frontend
 ✅ Morgan logging
 
@@ -224,6 +248,12 @@ Error:
 | SHIPROCKET_WEBHOOK_SECRET | No | Optional token to validate incoming webhook requests |
 | RAZORPAY_KEY_ID | Yes (for Razorpay) | Razorpay key id (test or live) |
 | RAZORPAY_SECRET | Yes (for Razorpay) | Razorpay secret used for payment signature verification |
+| FRONTEND_URL | Yes | Allowed frontend origins for CORS and review links |
+| JWT_EXPIRES_IN | No | JWT expiry (default: 7d) |
+| SMTP_USER | Yes (for email) | Gmail account used to send transactional emails |
+| SMTP_PASS | Yes (for email) | Google app password for SMTP authentication |
+| SMTP_FROM | No | Branded sender address |
+| GOOGLE_CLIENT_ID | Yes (for Google auth) | OAuth client id used to verify Google ID tokens |
 
 ## Security Notes
 

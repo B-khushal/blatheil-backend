@@ -1,6 +1,42 @@
 const asyncHandler = require("express-async-handler");
+const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const isGoogleAuthConfigured = () => Boolean(process.env.GOOGLE_CLIENT_ID);
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const setAuthCookie = (res, token) => {
+  res.cookie("auth_token", token, cookieOptions);
+};
+
+const issueAuthResponse = (res, user) => {
+  const token = generateToken(user._id, user.role);
+  setAuthCookie(res, token);
+
+  return {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+      provider: user.provider,
+      profileImage: user.profileImage,
+      isVerified: user.isVerified,
+    },
+    token,
+  };
+};
 
 const signup = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -27,20 +63,13 @@ const signup = asyncHandler(async (req, res) => {
     email: normalizedEmail,
     password,
     role: "user",
+    provider: "local",
+    isVerified: true,
   });
 
   return res.status(201).json({
     success: true,
-    data: {
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        mustChangePassword: user.mustChangePassword,
-      },
-      token: generateToken(user._id, user.role),
-    },
+    data: issueAuthResponse(res, user),
   });
 });
 
@@ -56,7 +85,21 @@ const login = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email: email.toLowerCase().trim() });
 
-  if (!user || !(await user.matchPassword(password))) {
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid credentials",
+    });
+  }
+
+  if (user.provider === "google" && !user.password) {
+    return res.status(400).json({
+      success: false,
+      message: "This account uses Google Sign-In. Please continue with Google.",
+    });
+  }
+
+  if (!(await user.matchPassword(password))) {
     return res.status(401).json({
       success: false,
       message: "Invalid credentials",
@@ -65,17 +108,101 @@ const login = asyncHandler(async (req, res) => {
 
   return res.json({
     success: true,
-    data: {
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        mustChangePassword: user.mustChangePassword,
-      },
-      token: generateToken(user._id, user.role),
-    },
+    data: issueAuthResponse(res, user),
   });
+});
+
+const getCsrfToken = asyncHandler(async (req, res) => {
+  const csrfToken = crypto.randomBytes(32).toString("hex");
+  res.cookie("csrf_token", csrfToken, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 1000,
+  });
+
+  res.json({
+    success: true,
+    data: { csrfToken },
+  });
+});
+
+const googleAuth = asyncHandler(async (req, res) => {
+  const { credential } = req.body;
+  const csrfHeader = req.headers["x-csrf-token"];
+  const csrfCookie = req.cookies?.csrf_token;
+
+  if (!credential) {
+    return res.status(400).json({
+      success: false,
+      message: "Google credential is required",
+    });
+  }
+
+  if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
+    return res.status(403).json({
+      success: false,
+      message: "CSRF validation failed",
+    });
+  }
+
+  if (!isGoogleAuthConfigured()) {
+    return res.status(500).json({
+      success: false,
+      message: "Google auth is not configured",
+    });
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+  const email = payload?.email?.toLowerCase().trim();
+  const emailVerified = Boolean(payload?.email_verified);
+
+  if (!email || !emailVerified) {
+    return res.status(400).json({
+      success: false,
+      message: "Google account email is not verified",
+    });
+  }
+
+  let user = await User.findOne({ email });
+
+  if (user) {
+    if (!user.googleId) {
+      user.googleId = payload.sub;
+    }
+
+    user.name = user.name || payload.name || "Blatheil User";
+    user.profileImage = payload.picture || user.profileImage;
+    user.provider = "google";
+    user.isVerified = true;
+    await user.save();
+  } else {
+    user = await User.create({
+      name: payload.name || "Blatheil User",
+      email,
+      googleId: payload.sub,
+      profileImage: payload.picture,
+      provider: "google",
+      isVerified: true,
+      role: "user",
+      mustChangePassword: false,
+    });
+  }
+
+  return res.json({
+    success: true,
+    data: issueAuthResponse(res, user),
+  });
+});
+
+const logout = asyncHandler(async (req, res) => {
+  res.clearCookie("auth_token", cookieOptions);
+  res.json({ success: true, data: { message: "Logged out" } });
 });
 
 const changePassword = asyncHandler(async (req, res) => {
@@ -116,4 +243,12 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { signup, login, changePassword };
+module.exports = {
+  signup,
+  login,
+  changePassword,
+  googleAuth,
+  getCsrfToken,
+  logout,
+  isGoogleAuthConfigured,
+};

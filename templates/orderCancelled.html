@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Cancelled</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5f7fb;font-family:Arial,sans-serif;color:#101828;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e9ecef;">
+            <tr>
+              <td style="padding:22px 24px;background:linear-gradient(135deg,#4f1212,#9b1f1f);color:#ffffff;">
+                <div style="font-size:12px;letter-spacing:2px;font-weight:700;color:#ffd6d6;">BLATHEIL</div>
+                <div style="margin-top:8px;font-size:22px;font-weight:700;">Order Cancelled</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;">
+                <p style="margin:0 0 8px;">Hi {{customerName}},</p>
+                <p style="margin:0 0 16px;color:#475467;">Your order has been cancelled.</p>
+                <p style="margin:0 0 18px;"><strong>Order ID:</strong> {{orderId}}</p>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e9ecef;border-radius:10px;border-collapse:collapse;overflow:hidden;">
+                  <thead>
+                    <tr style="background:#f8f9fc;text-align:left;font-size:12px;color:#475467;">
+                      <th style="padding:10px 12px;">Product</th>
+                      <th style="padding:10px 12px;">Qty</th>
+                      <th style="padding:10px 12px;">Unit</th>
+                      <th style="padding:10px 12px;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{itemsRows}}
+                  </tbody>
+                </table>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;">
+                  <tr><td style="padding:4px 0;color:#475467;"><strong>Cancellation Reason:</strong> {{cancellationReason}}</td></tr>
+                  <tr><td style="padding:4px 0;color:#475467;"><strong>Refund Status:</strong> {{refundStatus}}</td></tr>
+                  <tr><td style="padding:4px 0;color:#475467;"><strong>Refund Timeline:</strong> {{refundTimeline}}</td></tr>
+                </table>
+
+                <p style="margin:18px 0 0;color:#475467;">Need help? Email {{supportEmail}} or call {{supportPhone}}.</p>
+                <p style="margin:6px 0 0;color:#475467;">WhatsApp: {{supportWhatsapp}}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:14px 24px;background:#f8f9fc;color:#667085;font-size:12px;text-align:center;">
+                Copyright {{currentYear}} Blatheil. All rights reserved.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -6,6 +6,7 @@ const User = require("../models/User");
 const { generateWhatsAppMessage, generateWhatsAppLink } = require("../utils/whatsapp");
 const { CONTACT_WHATSAPP_NUMBER } = require("../config/contact");
 const { syncShipmentForOrder } = require("../controllers/shiprocketController");
+const { sendOrderConfirmationEmail } = require("./emailService");
 
 const validateAndPriceItems = async (items) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -108,9 +109,18 @@ const createOrderWithFulfillment = async ({
     }
   }
 
-  const user = await User.findById(userId).select("name");
+  const user = await User.findById(userId).select("name email");
   const waMessage = generateWhatsAppMessage(latestOrder, products);
   const waLink = generateWhatsAppLink(CONTACT_WHATSAPP_NUMBER, waMessage);
+
+  if (user?.email) {
+    await sendOrderConfirmationEmail({
+      to: user.email,
+      customerName: user.name,
+      order: latestOrder,
+      estimatedDelivery: process.env.DEFAULT_ESTIMATED_DELIVERY || "3-7 business days",
+    });
+  }
 
   if (clearUserCart) {
     await Cart.updateOne({ userId }, { items: [] });

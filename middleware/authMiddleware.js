@@ -4,13 +4,20 @@ const User = require("../models/User");
 
 const protect = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.auth_token;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  let token = null;
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  } else if (cookieToken) {
+    token = cookieToken;
+  }
+
+  if (!token) {
     res.status(401);
     throw new Error("Not authorized, token missing");
   }
-
-  const token = authHeader.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

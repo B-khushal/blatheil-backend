@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const authRoutes = require("./routes/authRoutes");
@@ -22,11 +23,38 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const offerRoutes = require("./routes/offerRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const bootstrapAdmin = require("./utils/bootstrapAdmin");
+const { isEmailTransportConfigured } = require("./services/emailService");
+const { isGoogleAuthConfigured } = require("./controllers/authController");
 
 const app = express();
 
-app.use(cors());
+const fallbackFrontendOrigins = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "http://localhost:8000",
+];
+
+const allowedOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+
+const corsAllowedOrigins = allowedOrigins.length > 0 ? allowedOrigins : fallbackFrontendOrigins;
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || corsAllowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS: Origin not allowed"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
@@ -47,6 +75,23 @@ app.use("/api", limiter);
 
 app.get("/api/health", (req, res) => {
   res.json({ success: true, data: { status: "ok" } });
+});
+
+app.get("/api/health/readiness", (req, res) => {
+  const emailTransportReady = isEmailTransportConfigured();
+  const googleAuthReady = isGoogleAuthConfigured();
+  const ready = emailTransportReady && googleAuthReady;
+
+  res.status(ready ? 200 : 503).json({
+    success: ready,
+    data: {
+      status: ready ? "ready" : "degraded",
+      checks: {
+        emailTransportReady,
+        googleAuthReady,
+      },
+    },
+  });
 });
 
 app.use("/api/auth", authRoutes);
@@ -82,4 +127,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };
