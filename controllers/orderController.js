@@ -88,7 +88,7 @@ const getAllOrders = asyncHandler(async (req, res) => {
 });
 
 const updateOrderStatus = asyncHandler(async (req, res) => {
-  const { status, paymentStatus, cancellationReason, refundStatus, refundTimeline } = req.body;
+  const { status, paymentStatus, cancellationReason, refundStatus, refundTimeline, resendDeliveredEmail } = req.body;
 
   if (!status && !paymentStatus) {
     return res.status(400).json({
@@ -151,7 +151,12 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  if (user?.email && order.status === "delivered" && previousStatus !== "delivered") {
+  const shouldSendDeliveredEmail =
+    user?.email &&
+    order.status === "delivered" &&
+    (previousStatus !== "delivered" || Boolean(resendDeliveredEmail));
+
+  if (shouldSendDeliveredEmail) {
     await sendOrderDeliveredEmail({
       to: user.email,
       customerName: user.name,

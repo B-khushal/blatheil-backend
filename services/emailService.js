@@ -10,33 +10,88 @@ const SUBJECTS = {
   delivered: "Your Blatheil Order Has Been Delivered Successfully ✅",
 };
 
+let transporterCache = {
+  key: null,
+  transporter: null,
+};
+
 const getSupportDetails = () => ({
   email: process.env.CONTACT_EMAIL || "support@blatheil.com",
   phone: process.env.CONTACT_PHONE || "+91 00000 00000",
   whatsapp: process.env.CONTACT_WHATSAPP_NUMBER || "",
 });
 
-const buildTransporter = () => {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+const sanitizeEnvValue = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  return String(value).trim();
+};
+
+const getSmtpConfig = () => {
+  const user = sanitizeEnvValue(process.env.SMTP_USER);
+  const pass = sanitizeEnvValue(process.env.SMTP_PASS);
 
   if (!user || !pass) {
     return null;
   }
 
+  const host = sanitizeEnvValue(process.env.SMTP_HOST) || "smtp.gmail.com";
+  const secure = String(process.env.SMTP_SECURE || "false") === "true";
+  const port = Number(process.env.SMTP_PORT || (secure ? 465 : 587));
+
+  return {
+    host,
+    port,
+    secure,
+    user,
+    pass,
+  };
+};
+
+const buildTransporter = (config) => {
+  if (!config) {
+    return null;
+  }
+
+  const { host, port, secure, user, pass } = config;
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE || "false") === "true",
+    host,
+    port,
+    secure,
+    requireTLS: !secure,
+    connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 15000),
+    greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 15000),
+    socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 20000),
     auth: { user, pass },
   });
 };
 
-const transporter = buildTransporter();
+const getTransporter = () => {
+  const config = getSmtpConfig();
+  if (!config) {
+    return null;
+  }
 
-const isEmailTransportConfigured = () => Boolean(transporter);
+  const key = `${config.host}|${config.port}|${config.secure}|${config.user}`;
+  if (transporterCache.transporter && transporterCache.key === key) {
+    return transporterCache.transporter;
+  }
+
+  transporterCache = {
+    key,
+    transporter: buildTransporter(config),
+  };
+
+  return transporterCache.transporter;
+};
+
+const isEmailTransportConfigured = () => Boolean(getSmtpConfig());
 
 const verifyEmailTransporter = async () => {
+  const transporter = getTransporter();
   if (!transporter) {
     return false;
   }
@@ -99,12 +154,15 @@ const toItemsRows = (items = []) => {
 };
 
 const sendEmail = async ({ to, subject, html, contextLabel }) => {
+  const transporter = getTransporter();
   if (!transporter) {
-    console.warn(`[Email] Skipped ${contextLabel}: transporter not configured`);
-    return { skipped: true };
+    const message = `[Email] Skipped ${contextLabel}: transporter not configured`;
+    console.warn(message);
+    throw new Error(message);
   }
 
   const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const primaryConfig = getSmtpConfig();
 
   try {
     const info = await transporter.sendMail({
@@ -118,7 +176,38 @@ const sendEmail = async ({ to, subject, html, contextLabel }) => {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[Email] Failed ${contextLabel} for ${to}: ${error.message}`);
-    return { success: false, error: error.message };
+
+    if (!primaryConfig) {
+      return { success: false, error: error.message };
+    }
+
+    const fallbackConfig = {
+      ...primaryConfig,
+      secure: !primaryConfig.secure,
+      port: primaryConfig.secure ? 587 : 465,
+    };
+
+    try {
+      const fallbackTransporter = buildTransporter(fallbackConfig);
+      const info = await fallbackTransporter.sendMail({
+        from: fromAddress,
+        to,
+        subject,
+        html,
+      });
+
+      console.log(
+        `[Email] ${contextLabel} sent to ${to} with fallback SMTP settings. messageId=${info.messageId}`
+      );
+      return { success: true, messageId: info.messageId, usedFallback: true };
+    } catch (fallbackError) {
+      console.error(
+        `[Email] Fallback failed ${contextLabel} for ${to}: ${fallbackError.message}`
+      );
+      throw new Error(
+        `[Email] Unable to send ${contextLabel} to ${to}. ${fallbackError.message}`
+      );
+    }
   }
 };
 
