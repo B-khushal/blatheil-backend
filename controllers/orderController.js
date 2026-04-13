@@ -13,14 +13,21 @@ const getPrimaryFrontendUrl = () => {
   return configuredOrigins[0] || "https://blatheil.com";
 };
 
-const queueDeliveredEmail = (payload, orderId) => {
+const queueDeliveredEmail = (payload, orderDoc) => {
   Promise.resolve()
     .then(() => sendOrderDeliveredEmail(payload))
     .then(() => {
-      console.log(`[Order] Delivered email sent for order ${orderId}`);
+      if (orderDoc) {
+        orderDoc.deliveredEmailSentAt = new Date();
+        return orderDoc.save();
+      }
+      return null;
+    })
+    .then(() => {
+      console.log(`[Order] Delivered email sent for order ${orderDoc?._id}`);
     })
     .catch((error) => {
-      console.error(`[Order] Delivered email failed for order ${orderId}: ${error.message}`);
+      console.error(`[Order] Delivered email failed for order ${orderDoc?._id}: ${error.message}`);
     });
 };
 
@@ -175,10 +182,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       deliveredAt: order.deliveredAt ? order.deliveredAt.toLocaleString("en-IN") : undefined,
       reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
       couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
-    }, order._id);
-
-    order.deliveredEmailSentAt = new Date();
-    await order.save();
+    }, order);
   }
 
   return res.json({
