@@ -18,6 +18,17 @@ const getPrimaryFrontendUrl = () => {
   return configuredOrigins[0] || "https://blatheil.com";
 };
 
+const queueDeliveredEmail = (payload, orderId) => {
+  Promise.resolve()
+    .then(() => sendOrderDeliveredEmail(payload))
+    .then(() => {
+      console.log(`[Shiprocket] Delivered email sent for order ${orderId}`);
+    })
+    .catch((error) => {
+      console.error(`[Shiprocket] Delivered email failed for order ${orderId}: ${error.message}`);
+    });
+};
+
 const toShippingStatus = (value) => {
   const normalized = String(value || "").trim().toUpperCase();
 
@@ -203,14 +214,14 @@ const handleWebhook = asyncHandler(async (req, res) => {
   if (order.status === "delivered" && previousStatus !== "delivered") {
     const user = await User.findById(order.userId).select("name email");
     if (user?.email) {
-      await sendOrderDeliveredEmail({
+      queueDeliveredEmail({
         to: user.email,
         customerName: user.name,
         order,
         deliveredAt: order.deliveredAt ? order.deliveredAt.toLocaleString("en-IN") : undefined,
         reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
         couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
-      });
+      }, order._id);
 
       order.deliveredEmailSentAt = new Date();
       await order.save();
@@ -246,14 +257,14 @@ const trackByAwb = asyncHandler(async (req, res) => {
     if (order.status === "delivered" && previousStatus !== "delivered") {
       const user = await User.findById(order.userId).select("name email");
       if (user?.email) {
-        await sendOrderDeliveredEmail({
+        queueDeliveredEmail({
           to: user.email,
           customerName: user.name,
           order,
           deliveredAt: order.deliveredAt ? order.deliveredAt.toLocaleString("en-IN") : undefined,
           reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
           couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
-        });
+        }, order._id);
 
         order.deliveredEmailSentAt = new Date();
         await order.save();
