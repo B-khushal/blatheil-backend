@@ -144,6 +144,10 @@ const orderSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    deliveredEmailSentAt: {
+      type: Date,
+      default: null,
+    },
     cancelledAt: {
       type: Date,
       default: null,

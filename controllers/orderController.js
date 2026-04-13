@@ -154,7 +154,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   const shouldSendDeliveredEmail =
     user?.email &&
     order.status === "delivered" &&
-    (previousStatus !== "delivered" || Boolean(resendDeliveredEmail));
+    (!order.deliveredEmailSentAt || previousStatus !== "delivered" || Boolean(resendDeliveredEmail));
 
   if (shouldSendDeliveredEmail) {
     await sendOrderDeliveredEmail({
@@ -165,6 +165,9 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
       couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
     });
+
+    order.deliveredEmailSentAt = new Date();
+    await order.save();
   }
 
   return res.json({

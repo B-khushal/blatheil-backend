@@ -211,6 +211,9 @@ const handleWebhook = asyncHandler(async (req, res) => {
         reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
         couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
       });
+
+      order.deliveredEmailSentAt = new Date();
+      await order.save();
     }
   }
 
@@ -251,6 +254,9 @@ const trackByAwb = asyncHandler(async (req, res) => {
           reviewUrl: `${getPrimaryFrontendUrl()}/my-orders`,
           couponCode: process.env.DEFAULT_NEXT_PURCHASE_COUPON || "BLATHEIL10",
         });
+
+        order.deliveredEmailSentAt = new Date();
+        await order.save();
       }
     }
   }
