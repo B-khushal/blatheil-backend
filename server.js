@@ -28,7 +28,9 @@ const { isGoogleAuthConfigured } = require("./controllers/authController");
 
 const app = express();
 
-const fallbackFrontendOrigins = [
+const defaultFrontendOrigins = [
+  "https://blatheil.in",
+  "https://www.blatheil.in",
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:8000",
@@ -39,7 +41,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || "")
   .map((entry) => entry.trim())
   .filter(Boolean);
 
-const corsAllowedOrigins = allowedOrigins.length > 0 ? allowedOrigins : fallbackFrontendOrigins;
+const corsAllowedOrigins = Array.from(new Set([...defaultFrontendOrigins, ...allowedOrigins]));
 
 app.use(
   cors({
@@ -48,7 +50,7 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error("CORS: Origin not allowed"));
+      return callback(null, false);
     },
     credentials: true,
   })

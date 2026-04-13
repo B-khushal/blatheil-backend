@@ -8,10 +8,12 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const isGoogleAuthConfigured = () => Boolean(process.env.GOOGLE_CLIENT_ID);
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -116,8 +118,8 @@ const getCsrfToken = asyncHandler(async (req, res) => {
   const csrfToken = crypto.randomBytes(32).toString("hex");
   res.cookie("csrf_token", csrfToken, {
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 60 * 60 * 1000,
   });
 
