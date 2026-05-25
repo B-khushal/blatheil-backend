@@ -1,5 +1,8 @@
-const GlobalSettings = require("../models/GlobalSettings");
-const { syncUsdRateIfNeeded } = require("../services/currencyRateService");
+const {
+  SUPPORTED_CURRENCIES,
+  syncExchangeRatesIfNeeded,
+  setManualUsdRate,
+} = require("../services/currencyRateService");
 
 // @desc    Get global settings
 // @route   GET /api/settings
@@ -7,11 +10,17 @@ const { syncUsdRateIfNeeded } = require("../services/currencyRateService");
 const getSettings = async (req, res, next) => {
   try {
     // Automatically refresh INR/USD rate once per day (best effort)
-    const settings = await syncUsdRateIfNeeded();
+    const settings = await syncExchangeRatesIfNeeded();
+
+    const exchangeRates = Object.fromEntries(settings.exchangeRates || []);
 
     res.status(200).json({
       success: true,
-      data: settings,
+      data: {
+        ...settings.toObject(),
+        exchangeRates,
+        supportedCurrencies: SUPPORTED_CURRENCIES,
+      },
     });
   } catch (error) {
     next(error);
@@ -32,25 +41,34 @@ const updateCurrencyRate = async (req, res, next) => {
       });
     }
 
-    let settings = await GlobalSettings.findOne();
-
-    if (!settings) {
-      settings = await GlobalSettings.create({
-        usdRate,
-        autoSyncEnabled: true,
-        lastRateSyncedAt: new Date(),
-        rateProvider: "manual/admin",
-      });
-    } else {
-      settings.usdRate = usdRate;
-      settings.lastRateSyncedAt = new Date();
-      settings.rateProvider = "manual/admin";
-      await settings.save();
-    }
+    const settings = await setManualUsdRate(usdRate);
 
     res.status(200).json({
       success: true,
-      data: settings,
+      data: {
+        ...settings.toObject(),
+        exchangeRates: Object.fromEntries(settings.exchangeRates || []),
+        supportedCurrencies: SUPPORTED_CURRENCIES,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Force currency sync from provider
+// @route   POST /api/settings/currency-sync
+// @access  Private/Admin
+const forceCurrencySync = async (req, res, next) => {
+  try {
+    const settings = await syncExchangeRatesIfNeeded({ force: true });
+    res.status(200).json({
+      success: true,
+      data: {
+        ...settings.toObject(),
+        exchangeRates: Object.fromEntries(settings.exchangeRates || []),
+        supportedCurrencies: SUPPORTED_CURRENCIES,
+      },
     });
   } catch (error) {
     next(error);
@@ -60,4 +78,5 @@ const updateCurrencyRate = async (req, res, next) => {
 module.exports = {
   getSettings,
   updateCurrencyRate,
+  forceCurrencySync,
 };

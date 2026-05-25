@@ -20,6 +20,14 @@ const globalSettingsSchema = new mongoose.Schema(
       default: "manual/default",
       trim: true,
     },
+    exchangeRates: {
+      type: Map,
+      of: Number,
+      default: {
+        INR: 1,
+        USD: 83,
+      },
+    },
     // Can expand with other global settings later like shipping fee config, maintenance mode etc.
   },
   {
