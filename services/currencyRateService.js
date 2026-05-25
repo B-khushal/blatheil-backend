@@ -136,13 +136,22 @@ async function getOrCreateSettings() {
     });
   }
 
+  // Normalize legacy provider strings to a generic label.
+  if (typeof settings.rateProvider === "string" && settings.rateProvider.startsWith("http")) {
+    settings.rateProvider = "auto-forex-sync";
+  }
+
   // Backfill for older settings docs and ensure new currencies are always present.
   const patchedRates = ensureAllSupportedRates(settings.exchangeRates);
   const currentRates = toPlainRatesObject(settings.exchangeRates);
   const needsPatch = SUPPORTED_CURRENCIES.some((code) => !currentRates[code]);
-  if (!settings.exchangeRates || settings.exchangeRates.size === 0 || needsPatch) {
+  const needsSave = !settings.exchangeRates || settings.exchangeRates.size === 0 || needsPatch;
+  if (needsSave) {
     settings.exchangeRates = patchedRates;
     settings.usdRate = patchedRates.USD || settings.usdRate || DEFAULT_USD_RATE;
+  }
+
+  if (needsSave || settings.isModified("rateProvider")) {
     await settings.save();
   }
 
@@ -184,40 +193,6 @@ async function syncExchangeRatesIfNeeded(options = {}) {
   return settings;
 }
 
-async function setManualUsdRate(usdRate) {
-  const settings = await getOrCreateSettings();
-  const numericRate = normalizeRate(usdRate);
-
-  if (!numericRate) {
-    throw new Error("Invalid usdRate");
-  }
-
-  const previousUsdRate = settings.usdRate || DEFAULT_USD_RATE;
-  const scale = previousUsdRate > 0 ? numericRate / previousUsdRate : 1;
-  const currentRates = Object.fromEntries(settings.exchangeRates || []);
-
-  // Scale existing INR-per-currency rates to keep relative conversions coherent.
-  const scaledRates = Object.entries(currentRates).reduce((acc, [code, value]) => {
-    const numericValue = normalizeRate(value);
-    if (!numericValue) return acc;
-    acc[code] = code === "INR" ? 1 : normalizeRate(numericValue * scale);
-    return acc;
-  }, {});
-
-  settings.usdRate = numericRate;
-  settings.exchangeRates = {
-    ...buildDefaultExchangeRates(),
-    ...scaledRates,
-    INR: 1,
-    USD: numericRate,
-  };
-  settings.lastRateSyncedAt = new Date();
-  settings.rateProvider = "manual/admin";
-  await settings.save();
-
-  return settings;
-}
-
 let syncIntervalHandle = null;
 
 function startCurrencyRateAutoSync() {
@@ -239,7 +214,6 @@ module.exports = {
   DEFAULT_USD_RATE,
   SUPPORTED_CURRENCIES,
   syncExchangeRatesIfNeeded,
-  setManualUsdRate,
   startCurrencyRateAutoSync,
   buildDefaultExchangeRates,
 };
