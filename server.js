@@ -25,6 +25,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const bootstrapAdmin = require("./utils/bootstrapAdmin");
 const { isEmailTransportConfigured } = require("./services/emailService");
 const { isGoogleAuthConfigured } = require("./controllers/authController");
+const { startCurrencyRateAutoSync } = require("./services/currencyRateService");
 
 const app = express();
 
@@ -120,6 +121,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await bootstrapAdmin();
+    startCurrencyRateAutoSync();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

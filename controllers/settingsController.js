@@ -1,18 +1,13 @@
 const GlobalSettings = require("../models/GlobalSettings");
+const { syncUsdRateIfNeeded } = require("../services/currencyRateService");
 
 // @desc    Get global settings
 // @route   GET /api/settings
 // @access  Public
 const getSettings = async (req, res, next) => {
   try {
-    let settings = await GlobalSettings.findOne();
-
-    // If no settings document exists, create default one
-    if (!settings) {
-      settings = await GlobalSettings.create({
-        usdRate: 83,
-      });
-    }
+    // Automatically refresh INR/USD rate once per day (best effort)
+    const settings = await syncUsdRateIfNeeded();
 
     res.status(200).json({
       success: true,
@@ -40,9 +35,16 @@ const updateCurrencyRate = async (req, res, next) => {
     let settings = await GlobalSettings.findOne();
 
     if (!settings) {
-      settings = await GlobalSettings.create({ usdRate });
+      settings = await GlobalSettings.create({
+        usdRate,
+        autoSyncEnabled: true,
+        lastRateSyncedAt: new Date(),
+        rateProvider: "manual/admin",
+      });
     } else {
       settings.usdRate = usdRate;
+      settings.lastRateSyncedAt = new Date();
+      settings.rateProvider = "manual/admin";
       await settings.save();
     }
 
