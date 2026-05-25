@@ -1,7 +1,6 @@
 const {
   SUPPORTED_CURRENCIES,
   syncExchangeRatesIfNeeded,
-  setManualUsdRate,
 } = require("../services/currencyRateService");
 
 // @desc    Get global settings
@@ -20,35 +19,7 @@ const getSettings = async (req, res, next) => {
         ...settings.toObject(),
         exchangeRates,
         supportedCurrencies: SUPPORTED_CURRENCIES,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Update currency rate
-// @route   PUT /api/settings/currency-rate
-// @access  Private/Admin
-const updateCurrencyRate = async (req, res, next) => {
-  try {
-    const { usdRate } = req.body;
-
-    if (!usdRate || isNaN(usdRate) || usdRate <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a valid USD to INR conversion rate greater than 0.",
-      });
-    }
-
-    const settings = await setManualUsdRate(usdRate);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        ...settings.toObject(),
-        exchangeRates: Object.fromEntries(settings.exchangeRates || []),
-        supportedCurrencies: SUPPORTED_CURRENCIES,
+        supportsForceCurrencySync: true,
       },
     });
   } catch (error) {
@@ -68,6 +39,7 @@ const forceCurrencySync = async (req, res, next) => {
         ...settings.toObject(),
         exchangeRates: Object.fromEntries(settings.exchangeRates || []),
         supportedCurrencies: SUPPORTED_CURRENCIES,
+        supportsForceCurrencySync: true,
       },
     });
   } catch (error) {
@@ -77,6 +49,5 @@ const forceCurrencySync = async (req, res, next) => {
 
 module.exports = {
   getSettings,
-  updateCurrencyRate,
   forceCurrencySync,
 };
