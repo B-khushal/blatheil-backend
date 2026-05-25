@@ -7,29 +7,17 @@ const WebsiteContent = require("../models/WebsiteContent");
 const getWebsiteContent = asyncHandler(async (req, res) => {
   let content = await WebsiteContent.findOne();
 
-  // Seed default if it doesn't exist yet
+  // If no website content exists, create an empty/clean default record
   if (!content) {
-    // Generate default lookbook collections
-    const collections = [
-      { id: "1", title: "Dominion Oversized Hoodie", image: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg", redirectLink: "/shop", displayOrder: 1 },
-      { id: "2", title: "Sovereign Bomber Jacket", image: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg", redirectLink: "/shop", displayOrder: 2 },
-      { id: "3", title: "Legacy Graphic Tee", image: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg", redirectLink: "/shop", displayOrder: 3 },
-      { id: "4", title: "Tactical Cargo Pants", image: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg", redirectLink: "/shop", displayOrder: 4 },
-      { id: "5", title: "Crown Snapback", image: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg", redirectLink: "/shop", displayOrder: 5 }
-    ];
-
-    let defaultCountdown = new Date();
-    defaultCountdown.setDate(defaultCountdown.getDate() + 3);
-
     content = await WebsiteContent.create({
-      collectionsSection: collections,
+      collectionsSection: [],
       nextDropSection: {
-        title: "Next Drop Incoming",
-        description: "Limited pieces. Once they're gone, they're gone. Set your alarms.",
+        title: "",
+        description: "",
         image: "",
-        countdownDate: defaultCountdown,
-        isVisible: true
-      }
+        countdownDate: null,
+        isVisible: false,
+      },
     });
   }
 
