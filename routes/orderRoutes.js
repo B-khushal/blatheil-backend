@@ -18,8 +18,8 @@ router.post(
   createOrder
 );
 router.get("/my", protect, getMyOrders);
-router.get("/", protect, authorizeRoles("admin"), getAllOrders);
+router.get("/", protect, authorizeRoles("admin", "manager", "sales_person"), getAllOrders);
 router.put("/:id/cancel", protect, cancelOrder);
-router.put("/:id/status", protect, authorizeRoles("admin"), updateOrderStatus);
+router.put("/:id/status", protect, authorizeRoles("admin", "manager", "sales_person"), updateOrderStatus);
 
 module.exports = router;

@@ -14,11 +14,6 @@ const SUPPORTED_CURRENCIES = [
   "SGD",
   "JPY",
   "NZD",
-  "CHF",
-  "CNY",
-  "HKD",
-  "SAR",
-  "QAR",
 ];
 
 const utcDayKey = (date) => new Date(date).toISOString().slice(0, 10);
@@ -57,11 +52,6 @@ function buildDefaultExchangeRates() {
     SGD: Number((DEFAULT_USD_RATE / 1.35).toFixed(4)),
     JPY: Number((DEFAULT_USD_RATE / 157).toFixed(4)),
     NZD: Number((DEFAULT_USD_RATE / 1.66).toFixed(4)),
-    CHF: Number((DEFAULT_USD_RATE / 0.91).toFixed(4)),
-    CNY: Number((DEFAULT_USD_RATE / 7.24).toFixed(4)),
-    HKD: Number((DEFAULT_USD_RATE / 7.81).toFixed(4)),
-    SAR: Number((DEFAULT_USD_RATE / 3.75).toFixed(4)),
-    QAR: Number((DEFAULT_USD_RATE / 3.64).toFixed(4)),
   };
 }
 

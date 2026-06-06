@@ -11,9 +11,9 @@ const {
   validateOffer,
 } = require("../controllers/offerController");
 
-router.route("/").post(protect, authorizeRoles("admin"), createOffer).get(protect, authorizeRoles("admin"), getOffers);
+router.route("/").post(protect, authorizeRoles("admin", "manager"), createOffer).get(protect, authorizeRoles("admin", "manager"), getOffers);
 router.get("/active", getActiveOffer);
 router.get("/validate/:code", validateOffer);
-router.route("/:id").put(protect, authorizeRoles("admin"), updateOffer).delete(protect, authorizeRoles("admin"), deleteOffer);
+router.route("/:id").put(protect, authorizeRoles("admin", "manager"), updateOffer).delete(protect, authorizeRoles("admin", "manager"), deleteOffer);
 
 module.exports = router;

@@ -12,6 +12,6 @@ const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 // So GET is public, PUT is protected.
 router.route("/")
   .get(getWebsiteContent)
-  .put(protect, authorizeRoles("admin"), updateWebsiteContent);
+  .put(protect, authorizeRoles("admin", "manager"), updateWebsiteContent);
 
 module.exports = router;

@@ -16,11 +16,11 @@ router.get("/:id", getProductById);
 router.post(
   "/",
   protect,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "manager"),
   requireFields(["name", "price", "category", "description", "stock"]),
   createProduct
 );
-router.put("/:id", protect, authorizeRoles("admin"), updateProduct);
-router.delete("/:id", protect, authorizeRoles("admin"), deleteProduct);
+router.put("/:id", protect, authorizeRoles("admin", "manager"), updateProduct);
+router.delete("/:id", protect, authorizeRoles("admin", "manager"), deleteProduct);
 
 module.exports = router;

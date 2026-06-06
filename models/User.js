@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "user", "staff"],
+      enum: ["admin", "manager", "sales_person", "user", "staff"],
       default: "user",
     },
     mustChangePassword: {

@@ -203,9 +203,9 @@ const cancelOrder = asyncHandler(async (req, res) => {
   }
 
   const isOwner = order.userId.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === "admin";
+  const isTeam = ["admin", "manager", "sales_person"].includes(req.user.role);
 
-  if (!isOwner && !isAdmin) {
+  if (!isOwner && !isTeam) {
     return res.status(403).json({
       success: false,
       message: "Not authorized to cancel this order",

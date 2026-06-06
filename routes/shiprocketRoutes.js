@@ -8,7 +8,7 @@ const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/create-order", protect, authorizeRoles("admin"), createShipment);
+router.post("/create-order", protect, authorizeRoles("admin", "manager"), createShipment);
 router.post("/webhook", handleWebhook);
 router.get("/track/:awb", trackByAwb);
 

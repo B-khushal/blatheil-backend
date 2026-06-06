@@ -7,6 +7,6 @@ const {
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
 router.route("/").get(getSettings);
-router.route("/currency-sync").post(protect, authorizeRoles("admin"), forceCurrencySync);
+router.route("/currency-sync").post(protect, authorizeRoles("admin", "manager"), forceCurrencySync);
 
 module.exports = router;

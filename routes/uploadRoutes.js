@@ -9,6 +9,6 @@ const router = express.Router();
 router.post("/", protect, upload.single, uploadImage);
 
 // Multiple images upload
-router.post("/multiple", protect, authorizeRoles("admin"), upload.multiple, uploadMultipleImages);
+router.post("/multiple", protect, authorizeRoles("admin", "manager"), upload.multiple, uploadMultipleImages);
 
 module.exports = router;
